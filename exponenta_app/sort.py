@@ -177,4 +177,4 @@ def sort_main() -> str:
 
 
 if __name__ == "__main__":
-    print(sort_main())
+    sort_main()
