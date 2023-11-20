@@ -4,15 +4,16 @@ import pickle
 
 # TODO: add help string
 
-
 save_file = Path("notes.bin")
 
 
-class Notes:
-    def __init__(self, title, description, tag):
-        self.title = title
-        self.description = description
-        self.tag = tag
+class Note:
+    def __init__(self, text):
+        self.text = text
+        self.tags = self.extract_tags(text)
+
+    def extract_tags(self, text):
+        return [word[1:] for word in text.split() if word.startswith("#")]
 
 
 class NoteBook(UserList):
@@ -24,7 +25,7 @@ class NoteBook(UserList):
         try:
             with open(save_file, "rb") as file:
                 self.data = pickle.load(file)
-                print("Notebook succefully load")
+                print("Notebook successfully loaded")
         except FileNotFoundError:
             print("Notes file not found. A new notepad has been created.")
         except Exception as e:
@@ -36,8 +37,8 @@ class NoteBook(UserList):
             print("Notes saved successfully")
 
     def add_note(self, text):
-        tags = self.extract_tags(text)
-        self.data.append({"text": text, "tags": tags})
+        note = Note(text)
+        self.data.append({"text": note.text, "tags": note.tags})
         print("The note is added to the notepad")
 
     def display_all_notes(self):
@@ -46,11 +47,10 @@ class NoteBook(UserList):
             print(f"Note: {index}, Text: {note['text']}, Tags: {note['tags']}")
         print("==============================\n")
 
-    def extract_tags(self, text: str):
-        tags = [word[1:] for word in text.split() if word.startswith("#")]
-        return tags
+    def extract_tags(self, text):
+        return [word[1:] for word in text.split() if word.startswith("#")]
 
-    def search_notes(self, search_text: str):
+    def search_notes(self, search_text):
         matching_notes = []
         for index, note in enumerate(self.data):
             if search_text.lower() in note["text"].lower():
@@ -68,8 +68,8 @@ class NoteBook(UserList):
 
     def change_note(self, note_index, new_text):
         if 0 <= note_index < len(self.data):
-            tags = self.extract_tags(new_text)
-            self.data[note_index] = {"text": new_text, "tags": tags}
+            note = Note(new_text)
+            self.data[note_index] = {"text": note.text, "tags": note.tags}
             print(f"Record with index {note_index} changed in notebook")
         else:
             print("The specified entry index does not exist")
@@ -77,7 +77,7 @@ class NoteBook(UserList):
     def delete_note(self, note_index):
         if 0 <= note_index < len(self.data):
             del self.data[note_index]
-            print(f"Record with index {note_index} deleted in notenook")
+            print(f"Record with index {note_index} deleted in notebook")
         else:
             print("The specified entry index does not exist")
 
@@ -85,61 +85,60 @@ class NoteBook(UserList):
 notebook = NoteBook()
 
 
-def add(text: list):
-    notebook.add_note(" ".join(text))
+class AddCommand:
+    def execute(self, args):
+        notebook.add_note(" ".join(args))
 
 
-def show(_: list):
-    notebook.display_all_notes()
+class ShowCommand:
+    def execute(self, args):
+        notebook.display_all_notes()
 
 
-def sort(_: list):
-    notebook.sort_notes_by_tags()
-    print("Records sorted")
+class SortCommand:
+    def execute(self, args):
+        notebook.sort_notes_by_tags()
+        print("Records sorted")
 
 
-def find(text: list):
-    notebook.search_notes(" ".join(text))
+class FindCommand:
+    def execute(self, args):
+        notebook.search_notes(" ".join(args))
 
 
-def change(text: list):
-    notebook.change_note(int(text[0]), " ".join(text[1:]))
+class ChangeCommand:
+    def execute(self, args):
+        notebook.change_note(int(args[0]), " ".join(args[1:]))
 
 
-def delete(text: list):
-    notebook.delete_note(int(text[0]))
+class DeleteCommand:
+    def execute(self, args):
+        notebook.delete_note(int(args[0]))
 
 
-def help(_: list = None):
-    print("\n===== Notebook command`s help =====")
-    print("add <any string>       - add new record to notebook")
-    print("show                   - show all records")
-    print("sort                   - sort records by tags")
-    print("find <text>            - find records by part")
-    print("change <number> <text> - changing a record by its number")
-    print("delete <number>        - removing a record by its number")
-    print("help                   - notebook commands list")
-    print("exit                   - leave notebook")
-    print("==============================\n")
+class HelpCommand:
+    def execute(self, args):
+        help()
 
 
-COMMANDS = {
-    "add": add,
-    "show": show,
-    "sort": sort,
-    "find": find,
-    "change": change,
-    "delete": delete,
-    "help": help,
+COMMAND_HANDLERS = {
+    "add": AddCommand(),
+    "show": ShowCommand(),
+    "sort": SortCommand(),
+    "find": FindCommand(),
+    "change": ChangeCommand(),
+    "delete": DeleteCommand(),
+    "help": HelpCommand(),
 }
 
 
-def parser(text: str):
-    text = text.strip().split()
-    if text[0] in COMMANDS:
-        COMMANDS[text[0]](text[1:])
-    else:
-        print("Wrong command. Please try again.")
+class CommandParser:
+    def parse(self, text):
+        args = text.strip().split()
+        if args[0] in COMMAND_HANDLERS:
+            COMMAND_HANDLERS[args[0]].execute(args[1:])
+        else:
+            print("Wrong command. Please try again.")
 
 
 def note_main():
@@ -149,7 +148,7 @@ def note_main():
         if choice.lower().startswith(("exit", "close", "quit")):
             notebook.save_notes()
             break
-        parser(choice)
+        CommandParser().parse(choice)
 
 
 if __name__ == "__main__":
