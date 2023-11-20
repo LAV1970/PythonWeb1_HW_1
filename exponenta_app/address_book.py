@@ -1,4 +1,4 @@
-# from _collections_abc import Iterator
+from abc import ABC, abstractmethod
 from collections import UserDict
 from datetime import date, datetime
 from itertools import islice
@@ -6,7 +6,6 @@ from pathlib import Path
 import pickle
 import re
 
-# from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit import prompt
 
@@ -38,15 +37,7 @@ greeting_message = """Welcome to Address Book.
 Type command or 'help' for more information."""
 
 
-class DateError(Exception):
-    ...
-
-
-class PhoneError(Exception):
-    ...
-
-
-class Field:
+class Field(ABC):
     def __init__(self, value):
         self.__value = None
         self.value = value
@@ -59,38 +50,88 @@ class Field:
     def value(self, value):
         self.__value = value
 
+    @abstractmethod
+    def __str__(self):
+        pass
+
+
+class Name(Field):
     def __str__(self):
         return str(self.value)
 
 
-class Name(Field):
-    ...
-
-
-class Adress(Field):
-    ...
+class Address(Field):
+    def __str__(self):
+        return f"Address: {self.value}"
 
 
 class Email(Field):
     def __init__(self, email: str):
-        self.__email = None
-        self.email = email
+        super().__init__(email)
 
     @property
     def email(self):
-        return self.__email
+        return self.value
 
     @email.setter
     def email(self, email):
         if re.match(r"[A-z.]+\w+@[A-z]+\.[A-Za-z]{2,}", email):
-            self.__email = email
+            self.value = email
         else:
             raise ValueError(
                 "Wrong email format. Use pattern <name@domain.com> for email"
             )
 
     def __str__(self):
-        return f"{self.__email}"
+        return f"Email: {self.email}"
+
+
+class DateError(Exception):
+    def __init__(self, message="Ошибка даты"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class PhoneError(Exception):
+    def __init__(self, message="Ошибка номера телефона"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class CommandProcessor:
+    def __init__(self, field_validator):
+        self.field_validator = field_validator
+
+    def process_command(self, user_input):
+        func, data = self.parse_command(user_input)
+        result = func(self.field_validator, *data)
+        print(result)
+
+
+class AddressBookManager:
+    def __init__(self):
+        self.address_book = AddressBook()
+
+
+class FieldValidator(ABC):
+    @abstractmethod
+    def validate(self, value):
+        pass
+
+
+class EmailValidator(FieldValidator):
+    def validate(self, value):
+        if not re.match(r"[A-z.]+\w+@[A-z]+\.[A-Za-z]{2,}", value):
+            raise ValueError(
+                "Wrong email format. Use pattern <name@domain.com> for email"
+            )
+
+
+class FieldValidatorFactory:
+    @staticmethod
+    def get_validator(field_type):
+        if field_type == "email":
+            return EmailValidator()
 
 
 class Birthday(Field):
@@ -132,7 +173,12 @@ class Phone(Field):
 
 class Record:
     def __init__(
-        self, name, phone: str = None, birthday_date: Birthday = None, email: str = None, adress: str = None
+        self,
+        name,
+        phone: str = None,
+        birthday_date: Birthday = None,
+        email: str = None,
+        adress: str = None,
     ):
         self.name = Name(name)
         self.phones: list(Phone) = []
@@ -152,7 +198,7 @@ class Record:
 
     # methods for working with the User address
     def add_adress(self, adress: str):
-        self.adress = Adress(adress)
+        self.adress = Address(adress)
 
     def show_adress(self) -> str:
         if self.adress:
@@ -162,6 +208,7 @@ class Record:
 
     def del_adress(self) -> None:
         self.adress = None
+
     # End adress block
 
     def add_birthday(self, bd_date) -> None:
@@ -174,7 +221,7 @@ class Record:
                 result = p
         return result
 
-    def find_adress(self, adress: str) -> Adress:
+    def find_adress(self, adress: str) -> Address:
         result = None
         if adress.lower() in str(self.adress):
             result = self.adress
@@ -222,9 +269,60 @@ class Record:
 
     def __str__(self):
         phones = "; ".join(p.phone for p in self.phones)
-        return "Contact name: {}, birthday: {}, phones: {}, email: {}, adress: {}".format(
-            self.name, self.birthday, phones, self.email, self.adress
+        return (
+            "Contact name: {}, birthday: {}, phones: {}, email: {}, adress: {}".format(
+                self.name, self.birthday, phones, self.email, self.adress
+            )
         )
+
+
+def initialize_address_book():
+    address_book_manager = AddressBookManager()
+    command_processor = CommandProcessor(address_book_manager)
+
+    try:
+        if all([save_file.exists(), save_file.stat().st_size > 0]):
+            print(address_book_manager.address_book.load_book())
+    except Exception as e:
+        print(f"Error initializing address book: {e}")
+
+    return address_book_manager, command_processor
+
+
+def addressbook_main():
+    address_book_manager, command_processor = initialize_address_book()
+
+    greeting()
+    while True:
+        menu_completer = NestedCompleter.from_nested_dict(
+            {
+                "add": {"name phone": None},
+                "add_phone": {"name phone(10 digits)": None},
+                "add_birthday": {"name dd/mm/YYYY"},
+                "birthday": {"num_days": None},
+                "add_adress": {"name adress"},
+                "adress": {"name": None},
+                "change": {"name phone new_phone": None},
+                "days_to_birthday": {"name": None},
+                "delete_adr": {"name": None},
+                "delete_phone": {"name phone"},
+                "delete_record": {"name": None},
+                "email": {"name email@": None},
+                "find": {"anything": None},
+                "hello": None,
+                "help": None,
+                "show_all": {"20"},
+                "exit": None,
+                "close": None,
+                "good_buy": None,
+            }
+        )
+
+        user_input = prompt(
+            "Enter command or 'help' for help: ", completer=menu_completer
+        )
+
+        command_processor.process_command(user_input)
 
 
 class AddressBook(UserDict):
@@ -254,7 +352,7 @@ class AddressBook(UserDict):
         values = list(map(str, islice(self.data.values(), None)))
         while self.counter < len(values):
             if quantity:
-                yield values[self.counter: self.counter + quantity]
+                yield values[self.counter : self.counter + quantity]
                 self.counter += quantity
             else:
                 yield values
@@ -288,6 +386,7 @@ def input_error(func):
             return "Not enough params. Try again"
         except PhoneError:
             return "This phone number doesn't exist in the dictionary."
+
     return inner
 
 
@@ -396,7 +495,7 @@ def remove_phone(*args):
     rec = phone_book.get(name)
     if rec:
         rec.remove_phone(phone)
-        return f'{phone} deleted.'
+        return f"{phone} deleted."
     else:
         raise PhoneError()
 
@@ -406,11 +505,15 @@ def find(search: str) -> str:
     rec = []
     if search.isdigit():
         for k, v in phone_book.items():
-            if v.find_phone(search) or search.lower() in str(v.find_adress(search.lower())):
+            if v.find_phone(search) or search.lower() in str(
+                v.find_adress(search.lower())
+            ):
                 rec.append(phone_book[k])
     else:
         for k, v in phone_book.items():
-            if search.lower() in k.lower() or search.lower() in str(v.find_adress(search.lower())):
+            if search.lower() in k.lower() or search.lower() in str(
+                v.find_adress(search.lower())
+            ):
                 rec.append(phone_book[k])
     if rec:
         result = "\n".join(list(map(str, rec)))
@@ -442,7 +545,7 @@ def load_book() -> str:
 def add_adress(name, *args):
     # add addresses for an existing user
     # name: str = args[0].lower()
-    adress: str = ' '.join(args).replace(name, '', 1)
+    adress: str = " ".join(args).replace(name, "", 1)
     rec: Record = phone_book.get(name)
     if rec:
         rec.add_adress(adress)
@@ -507,7 +610,7 @@ def parcer(text: str):
     for func, kw in COMMANDS.items():
         command = text.rstrip().split()
         if text.lower().startswith(kw) and command[0].lower() in kw:
-            return func, text[len(kw):].strip().split()
+            return func, text[len(kw) :].strip().split()
     return unknown, []
 
 
@@ -519,30 +622,33 @@ def addressbook_main():
         ...
     greeting()
     while True:
-        menu_completer = NestedCompleter.from_nested_dict({
-            'add': {'name phone': None},
-            'add_phone': {'name phone(10 digits)': None},
-            'add_birthday': {'name dd/mm/YYYY'},
-            'birthday': {'num_days': None},
-            'add_adress': {'name adress'},
-            'adress': {'name': None},
-            'change': {'name phone new_phone': None},
-            'days_to_birthday': {'name': None},
-            'delete_adr': {'name': None},
-            'delete_phone': {'name phone'},
-            'delete_record': {'name': None},
-            'email': {'name email@': None},
-            'find': {'anything': None},
-            'hello': None,
-            'help': None,
-            'show_all': {'20'},
-            'exit': None,
-            'close': None,
-            'good_buy': None
-        })
+        menu_completer = NestedCompleter.from_nested_dict(
+            {
+                "add": {"name phone": None},
+                "add_phone": {"name phone(10 digits)": None},
+                "add_birthday": {"name dd/mm/YYYY"},
+                "birthday": {"num_days": None},
+                "add_adress": {"name adress"},
+                "adress": {"name": None},
+                "change": {"name phone new_phone": None},
+                "days_to_birthday": {"name": None},
+                "delete_adr": {"name": None},
+                "delete_phone": {"name phone"},
+                "delete_record": {"name": None},
+                "email": {"name email@": None},
+                "find": {"anything": None},
+                "hello": None,
+                "help": None,
+                "show_all": {"20"},
+                "exit": None,
+                "close": None,
+                "good_buy": None,
+            }
+        )
 
-        user_input = prompt("Enter command or 'help' for help: ",
-                            completer=menu_completer)
+        user_input = prompt(
+            "Enter command or 'help' for help: ", completer=menu_completer
+        )
 
         func, data = parcer(user_input)
         result = func(*data)
