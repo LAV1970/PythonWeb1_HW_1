@@ -6,4 +6,4 @@ WORKDIR /app
 RUN git clone https://github.com/LAV1970/PythonWeb1_HW_1 .
 
 # Запускаємо "Персонального помічника" при старті контейнера
-CMD ["python", "main.py"]
+CMD ["python", "/exponenta_app/main.py"]
