@@ -9,4 +9,4 @@ RUN git clone https://github.com/LAV1970/PythonWeb1_HW_1 .
 RUN pip install -r requirements.txt  # Якщо є файл вимог
 
 # Запускаємо "Персонального помічника" при старті контейнера
-CMD ["python", "your_personal_assistant_script.py"]
+CMD ["python", "main.py"]
