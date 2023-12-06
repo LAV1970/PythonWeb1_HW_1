@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import concurrent.futures
 from typing import List
 import os
 from pathlib import Path
@@ -132,12 +133,19 @@ def normalize(file: Path) -> str:
 def write_in_file(file_list: dict, ext_list: dict, path: Path) -> None:
     for k, v in file_list.items():
         text = "\n".join(v)
-        file_path = path.joinpath(k).joinpath(k + ".txt")
+        # Используем mkdir(parents=True) для создания директорий, если их нет
+        file_path = path.joinpath(k)
+        file_path.mkdir(parents=True, exist_ok=True)
+        file_path = file_path.joinpath(k + ".txt")
         with open(file_path, "w") as fh:
             fh.write(text)
+
     for k, v in ext_list.items():
         text = "\n".join(v)
-        file_path = path.joinpath(k).joinpath(k + "_ext.txt")
+        # Используем mkdir(parents=True) для создания директорий, если их нет
+        file_path = path.joinpath(k)
+        file_path.mkdir(parents=True, exist_ok=True)
+        file_path = file_path.joinpath(k + "_ext.txt")
         with open(file_path, "w") as fh:
             fh.write(text)
 
@@ -156,6 +164,29 @@ def delete_empty_folders(path: Path) -> None:
             shutil.rmtree(i)
 
 
+class FileSorter:
+    def __init__(self, file_processor: FileProcessor, max_workers=5):
+        self.file_processor = file_processor
+        self.max_workers = max_workers
+
+    def sort_folder(self, path: Path) -> None:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers
+        ) as executor:
+            # Передаем кортеж с аргументами для каждого файла
+            futures = {
+                executor.submit(self.process_file, i, path): (i, path)
+                for i in path.glob("**/*")
+                if i.is_file()
+            }
+            concurrent.futures.wait(futures)
+
+    def process_file(self, args) -> None:
+        file, root_dir = args
+        category = get_category(file)
+        self.file_processor.process_file(file, category, root_dir)
+
+
 def sort_main() -> str:
     folder = input("Enter path to folder you want to sort: ")
     try:
@@ -166,9 +197,10 @@ def sort_main() -> str:
     if not path.exists():
         return "Path does not exist"
 
-    file_processor = SimpleFileProcessor()
+    file_processor = SimpleFileProcessor(file_list, ext_list)  # Передаем аргументы
     sorter = FileSorter(file_processor)
 
+    # Используем метод sort_folder напрямую
     sorter.sort_folder(path)
     delete_empty_folders(path)
     write_in_file(file_list, ext_list, path)
@@ -177,4 +209,13 @@ def sort_main() -> str:
 
 
 if __name__ == "__main__":
+    file_processor = SimpleFileProcessor(file_list, ext_list)
+    sorter = FileSorter(
+        file_processor, max_workers=5
+    )  # Укажите количество желаемых потоков
+
+    sorter.sort_folder(Path("F:/Projects/Python_projects/Alex/BSK"))
+    delete_empty_folders(Path("F:/Projects/Python_projects/Alex/BSK"))
+    write_in_file(file_list, ext_list, Path("F:/Projects/Python_projects/Alex/BSK"))
+
     sort_main()
