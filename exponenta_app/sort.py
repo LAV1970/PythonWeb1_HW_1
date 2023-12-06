@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 import os
 from pathlib import Path
@@ -113,17 +114,6 @@ class SimpleFileProcessor(FileProcessor):
             shutil.unpack_archive(archive, unpack_path, archive.suffix)
 
 
-class FileSorter:
-    def __init__(self, file_processor: FileProcessor):
-        self.file_processor = file_processor
-
-    def sort_folder(self, path: Path) -> None:
-        for i in path.glob("**/*"):
-            if i.is_file():
-                category = get_category(i)
-                self.file_processor.process_file(i, category, path)
-
-
 def normalize(file: Path) -> str:
     new_name = file.name.translate(TRANS)
     new_name = re.sub(r"[^a-z0-9A-Z.]", "_", new_name)
@@ -170,21 +160,24 @@ class FileSorter:
         self.max_workers = max_workers
 
     def sort_folder(self, path: Path) -> None:
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.max_workers
-        ) as executor:
-            # Передаем кортеж с аргументами для каждого файла
-            futures = {
-                executor.submit(self.process_file, i, path): (i, path)
-                for i in path.glob("**/*")
-                if i.is_file()
-            }
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Получаем все подкаталоги в текущем каталоге
+            subdirectories = [i for i in path.glob("**/*") if i.is_dir()]
+            # Запускаем обработку каждого подкаталога в отдельном потоке
+            futures = [
+                executor.submit(self.process_folder, subdirectory)
+                for subdirectory in subdirectories
+            ]
             concurrent.futures.wait(futures)
 
-    def process_file(self, args) -> None:
-        file, root_dir = args
-        category = get_category(file)
-        self.file_processor.process_file(file, category, root_dir)
+    def process_folder(self, folder: Path) -> None:
+        # Обработка файлов внутри подкаталога
+        for file in folder.glob("*"):
+            if file.is_file():
+                # Получаем категорию файла
+                category = get_category(file)
+                # Обрабатываем файл с использованием переданного FileProcessor
+                self.file_processor.process_file(file, category, folder)
 
 
 def sort_main() -> str:
@@ -202,7 +195,7 @@ def sort_main() -> str:
 
     # Используем метод sort_folder напрямую
     sorter.sort_folder(path)
-    delete_empty_folders(path)
+    delete_empty_folders(path)  # Добавлен вызов
     write_in_file(file_list, ext_list, path)
 
     return "Folder sorted"
@@ -210,12 +203,14 @@ def sort_main() -> str:
 
 if __name__ == "__main__":
     file_processor = SimpleFileProcessor(file_list, ext_list)
-    sorter = FileSorter(
-        file_processor, max_workers=5
-    )  # Укажите количество желаемых потоков
+    sorter = FileSorter(file_processor, max_workers=5)
 
+    # Запускаем сортировку и обработку в нескольких потоках
     sorter.sort_folder(Path("F:/Projects/Python_projects/Alex/BSK"))
+    # Удаляем пустые папки в нескольких потоках
     delete_empty_folders(Path("F:/Projects/Python_projects/Alex/BSK"))
+    # Записываем результаты в файлы
     write_in_file(file_list, ext_list, Path("F:/Projects/Python_projects/Alex/BSK"))
 
+    # Запускаем остальные операции
     sort_main()
