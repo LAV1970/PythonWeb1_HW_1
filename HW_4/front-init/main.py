@@ -5,6 +5,14 @@ import urllib.parse
 class HttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         pr_url = urllib.parse.urlparse(self.path)
+        match pr_url.path:
+            case "/":
+                self.send_html("index.html")
+            case "/message":
+                self.send_html("message.html")
+            case _:
+                self.send_html("error.html", 404)
+
         if pr_url.path == "/":
             self.send_html_file("index.html")
         elif pr_url.path == "/contact":
