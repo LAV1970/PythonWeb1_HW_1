@@ -3,22 +3,16 @@ import urllib.parse
 
 
 class HttpHandler(BaseHTTPRequestHandler):
+    PAGE_MAPPING = {
+        "/": "index.html",
+        "/message": "message.html",
+    }
+
     def do_GET(self):
         pr_url = urllib.parse.urlparse(self.path)
-        match pr_url.path:
-            case "/":
-                self.send_html("index.html")
-            case "/message":
-                self.send_html("message.html")
-            case _:
-                self.send_html("error.html", 404)
+        file_path = self.PAGE_MAPPING.get(pr_url.path, "error.html")
 
-        if pr_url.path == "/":
-            self.send_html_file("index.html")
-        elif pr_url.path == "/contact":
-            self.send_html_file("contact.html")
-        else:
-            self.send_html_file("error.html", 404)
+        self.send_html_file(file_path)
 
     def send_html_file(self, filename, status=200):
         self.send_response(status)
