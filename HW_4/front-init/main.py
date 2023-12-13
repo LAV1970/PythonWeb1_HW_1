@@ -7,6 +7,7 @@ class HttpHandler(BaseHTTPRequestHandler):
     PAGE_MAPPING = {
         "/": "index.html",
         "/message": "message.html",
+        "/message.html": "message.html",
     }
 
     STATIC_PATHS = {
@@ -35,7 +36,9 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def send_html_file(self, filename, status=200):
         full_path = os.path.join(os.path.dirname(__file__), filename.lstrip("/"))
-        print("Attempting to open file:", full_path)  # Добавим эту строку для отладки
+        print(
+            "Attempting to open HTML file:", full_path
+        )  # Добавим эту строку для отладки
         if os.path.exists(full_path):
             self.send_response(status)
             self.send_header("Content-type", "text/html")
@@ -43,6 +46,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             with open(full_path, "rb") as fd:
                 self.wfile.write(fd.read())
         else:
+            print("HTML file not found:", full_path)  # Добавим эту строку для отладки
             self.send_error(404, "File Not Found")
 
     def send_static_file(self, filename, status=200):
