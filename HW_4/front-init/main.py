@@ -6,7 +6,7 @@ import os
 class HttpHandler(BaseHTTPRequestHandler):
     PAGE_MAPPING = {
         "/": "index.html",
-        "F:/Projects/Python_projects/Alex/PythonWeb1_HW_1/HW_4/front-init/message.html": "message.html",
+        "/message": "message.html",
     }
 
     STATIC_PATHS = {
@@ -35,6 +35,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def send_html_file(self, filename, status=200):
         full_path = os.path.join(os.path.dirname(__file__), filename.lstrip("/"))
+        print("Attempting to open file:", full_path)  # Добавим эту строку для отладки
         if os.path.exists(full_path):
             self.send_response(status)
             self.send_header("Content-type", "text/html")
@@ -46,13 +47,13 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def send_static_file(self, filename, status=200):
         full_path = os.path.join(os.path.dirname(__file__), filename.lstrip("/"))
-
+        print("Attempting to open file:", full_path)  # Добавим эту строку для отладки
         if os.path.exists(full_path):
             self.send_response(status)
-            if filename.endswith(".css"):
-                self.send_header("Content-type", "text/css")
-            elif filename.endswith(".png"):
-                self.send_header("Content-type", "image/png")
+        if filename.endswith(".css"):
+            self.send_header("Content-type", "text/css")
+        elif filename.endswith(".png"):
+            self.send_header("Content-type", "image/png")
             self.end_headers()
             with open(full_path, "rb") as fd:
                 self.wfile.write(fd.read())
