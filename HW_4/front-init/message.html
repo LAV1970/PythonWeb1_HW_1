@@ -36,6 +36,26 @@
         </div>
       </nav>
     </header>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script>
+      var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+      function sendMessage() {
+        var username = document.getElementById('floatingInput').value;
+        var message = document.getElementById('floatingTextarea').value;
+
+        var messageData = { 'username': username, 'text': message };
+        socket.emit('message_from_client', messageData);
+
+        // Очистим форму после отправки сообщения
+        document.getElementById('messageForm').reset();
+      }
+
+      socket.on('message_from_server', function (message) {
+        // Здесь ты можешь добавить логику для обработки сообщения от сервера
+        console.log('Received message from server:', message);
+      });
+    </script>
     <div class="container mt-3">
       <main class="form-signin w-50 m-auto">
         <form action="/message" method="POST">
