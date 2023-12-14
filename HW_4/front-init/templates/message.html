@@ -1,81 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi"
-      crossorigin="anonymous"
-    />
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <header>
-      <nav
-        class="navbar navbar-expand navbar-dark bg-dark"
-        aria-label="Second navbar example"
-      >
-        <div class="container-fluid">
-          <a class="navbar-brand" href="#">
-            <img src="/logo.png" alt="logo" />
-          </a>
-          <div class="collapse navbar-collapse" id="navbarsExample02">
-            <ul class="navbar-nav me-auto">
-              <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="/">Home</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Send message</a>
-              </li>
-            </ul>
-          </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <img src="{{ url_for('static', filename='logo.png') }}" alt="logo">
+</head>
+
+<body>
+  <header>
+    <nav class="navbar navbar-expand navbar-dark bg-dark" aria-label="Second navbar example">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <img src="/logo.png" alt="logo" />
+        </a>
+        <div class="collapse navbar-collapse" id="navbarsExample02">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Send message</a>
+            </li>
+          </ul>
         </div>
-      </nav>
-    </header>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
-    <script>
-      var socket = io.connect('http://' + document.domain + ':' + location.port);
+      </div>
+    </nav>
+  </header>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+  <script>
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-      function sendMessage() {
-        var username = document.getElementById('floatingInput').value;
-        var message = document.getElementById('floatingTextarea').value;
+    // Проверка успешного подключения
+    socket.on('connect', function () {
+      console.log('Socket connected!');
+    });
 
-        var messageData = { 'username': username, 'text': message };
-        socket.emit('message_from_client', messageData);
+    // Обработка возможных ошибок подключения
+    socket.on('connect_error', function (err) {
+      console.error('Socket connection error:', err);
+    });
 
-        // Очистим форму после отправки сообщения
-        document.getElementById('messageForm').reset();
-      }
+    function sendMessage() {
+      var username = document.getElementById('floatingInput').value;
+      var message = document.getElementById('floatingTextarea').value;
 
-      socket.on('message_from_server', function (message) {
-        // Здесь ты можешь добавить логику для обработки сообщения от сервера
-        console.log('Received message from server:', message);
-      });
-    </script>
-    <div class="container mt-3">
-      <main class="form-signin w-50 m-auto">
-        <form action="/message" method="POST">
-          <h1 class="h3 mb-3 fw-normal">Please send me message</h1>
+      var messageData = { 'username': username, 'text': message };
+      socket.emit('message_from_client', messageData);
 
-          <div class="row mb-3">
-            <label for="floatingInput">Your nickname</label>
-            <input type="text" class="form-control" id="floatingInput" name="username"/>
-          </div>
+      // Очистим форму после отправки сообщения
+      document.getElementById('messageForm').reset();
+    }
 
-          <div class="row mb-3 h-100">
-            <label for="floatingTextarea">Message</label>
-            <textarea class="form-control" id="floatingTextarea" name="message"></textarea>
-          </div>
+    socket.on('message_from_server', function (message) {
+      // Здесь ты можешь добавить логику для обработки сообщения от сервера
+      console.log('Received message from server:', message);
+    });
+  </script>
+  <div class="container mt-3">
+    <main class="form-signin w-50 m-auto">
+      <form action="/message" method="POST" id="messageForm">
+        <!-- ... -->
+        <div class="row mb-3">
+          <label for="floatingInput">Your nickname</label>
+          <input type="text" class="form-control" id="floatingInput" name="username" />
+        </div>
+        <!-- ... -->
+      </form>
+      <h1 class="h3 mb-3 fw-normal">Please send me message</h1>
 
-          <button class="w-100 btn btn-lg btn-primary" type="submit">
-            Send
-          </button>
-        </form>
-      </main>
-    </div>
-  </body>
+      <div class="row mb-3">
+        <label for="floatingInput">Your nickname</label>
+        <input type="text" class="form-control" id="floatingInput" name="username" />
+      </div>
+
+      <div class="row mb-3 h-100">
+        <label for="floatingTextarea">Message</label>
+        <textarea class="form-control" id="floatingTextarea" name="message"></textarea>
+      </div>
+
+      <button class="w-100 btn btn-lg btn-primary" type="submit">
+        Send
+      </button>
+      </form>
+    </main>
+  </div>
+</body>
+
 </html>
