@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 import json
 import os
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+app = Flask(__name__, static_url_path="/static")
 socketio = SocketIO(app)
 
 
@@ -32,9 +32,9 @@ def save_to_json(data):
     os.makedirs(storage_dir, exist_ok=True)
 
     file_path = os.path.join(storage_dir, "data.json")
-    with open(file_path, "a") as json_file:
+    with open(file_path, "w") as json_file:
         json.dump(data, json_file)
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app)
