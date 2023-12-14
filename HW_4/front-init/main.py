@@ -14,6 +14,11 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/message")
+def message():
+    return render_template("message.html")
+
+
 @socketio.on("message_from_client")
 def handle_message(message):
     username = message["username"]
