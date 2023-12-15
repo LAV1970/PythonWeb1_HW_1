@@ -34,10 +34,10 @@ def message():
     return render_template("message.html")
 
 
-@app.route("/handle_post_message", methods=["POST"])
+@app.route("/message", methods=["POST"])
 def handle_post_message():
-    # Ваш код обработки POST-запроса
-    return "Success"  # или возвращайте что-то еще в зависимости от вашей логики
+    # Your code to handle the POST request
+    return "Success"
 
 
 @socketio.on("message_from_client")
@@ -60,6 +60,8 @@ def handle_message(message):
 
     # Сохранение данных в JSON файл
     save_to_json(messages_data)
+
+    return "Success"  # или возвращайте что-то еще в зависимости от вашей логики
 
 
 def save_to_json(data):
