@@ -6,8 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Document</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
+  <link rel="stylesheet" href="{{ url_for('static', filename='static/CSS/style.css') }}">
 </head>
 
 <body>
@@ -15,7 +14,7 @@
     <nav class="navbar navbar-expand navbar-dark bg-dark" aria-label="Second navbar example">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">
-          <img src="/logo.png" alt="logo" />
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
         </a>
         <div class="collapse navbar-collapse" id="navbarsExample02">
           <ul class="navbar-nav me-auto">
@@ -30,7 +29,25 @@
       </div>
     </nav>
   </header>
+  <div class="container mt-3">
+    <main class="form-signin w-50 m-auto">
+      <form action="/message" method="POST" id="messageForm">
+        <div class="row mb-3">
+          <label for="floatingInput">Your nickname</label>
+          <input type="text" class="form-control" id="floatingInput" name="username" />
+        </div>
 
+        <div class="row mb-3 h-100">
+          <label for="floatingTextarea">Message</label>
+          <textarea class="form-control" id="floatingTextarea" name="message"></textarea>
+        </div>
+
+        <button class="w-100 btn btn-lg btn-primary" type="submit" onclick="sendMessage()">
+          Send
+        </button>
+      </form>
+    </main>
+  </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
   <script>
     var socket = io.connect('http://' + document.domain + ':' + location.port);
@@ -57,26 +74,6 @@
       console.log('Received message from server:', message);
     });
   </script>
-
-  <div class="container mt-3">
-    <main class="form-signin w-50 m-auto">
-      <form action="/message" method="POST" id="messageForm">
-        <div class="row mb-3">
-          <label for="floatingInput">Your nickname</label>
-          <input type="text" class="form-control" id="floatingInput" name="username" />
-        </div>
-
-        <div class="row mb-3 h-100">
-          <label for="floatingTextarea">Message</label>
-          <textarea class="form-control" id="floatingTextarea" name="message"></textarea>
-        </div>
-
-        <button class="w-100 btn btn-lg btn-primary" type="submit" onclick="sendMessage()">
-          Send
-        </button>
-      </form>
-    </main>
-  </div>
 </body>
 
 </html>
