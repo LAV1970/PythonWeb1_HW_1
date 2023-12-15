@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO
 import json
 from datetime import datetime
@@ -34,6 +34,12 @@ def message():
     return render_template("message.html")
 
 
+@app.route("/handle_post_message", methods=["POST"])
+def handle_post_message():
+    # Ваш код обработки POST-запроса
+    return "Success"  # или возвращайте что-то еще в зависимости от вашей логики
+
+
 @socketio.on("message_from_client")
 def handle_message(message):
     username = message["username"]
@@ -61,13 +67,5 @@ def save_to_json(data):
         json.dump(data, json_file)
 
 
-def run_flask():
-    socketio.run(app, debug=True, use_reloader=False)
-
-
-def run_socket():
-    socketio.start_background_task(target=run_flask)
-
-
 if __name__ == "__main__":
-    threading.Thread(target=run_socket).start()
+    socketio.run(app, debug=True, use_reloader=False)
